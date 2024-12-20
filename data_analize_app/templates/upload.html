@@ -394,7 +394,8 @@
                     <div class="row mb-3">
                         <div class="col-md-4">
                             <label for="timeGranularity" class="form-label">Time Granularity</label>
-                            <select class="form-select" id="timeGranularity" name="time_granularity" onchange="">
+                            <select class="form-select" id="timeGranularity" name="time_granularity">
+                                <option value="all">All Data</option>
                                 <option value="daily">Daily</option>
                                 <option value="hourly">Hourly</option>
                             </select>
@@ -512,7 +513,11 @@
                             </select>
                         </div>
                     </div>
-                    <canvas id="energyChart"></canvas>
+                    <div style="width: 100%; overflow-x: auto; overflow-y: hidden">
+                        <div style="width: 6000px; height: 500px">
+                            <canvas id="energyChart" height="500" width="0"></canvas>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Statistics Section -->
@@ -931,12 +936,13 @@
                 const quarter = document.getElementById('quarterSelect').value;
                 const month = document.getElementById('monthSelect').value;
                 const week = document.getElementById('weekSelect').value;
+                const timeGranularity = document.getElementById('timeGranularity').value;
                 
                 // Get filtered data with all filters
                 let filteredData = filterDataByTime(chartData.chart_data, filterType);
                 
                 // Apply additional filters
-                filteredData = applyAdditionalFilters(filteredData, quarter, month, week);
+                filteredData = applyAdditionalFilters(filteredData, quarter, month, week, timeGranularity);
                 
                 // Create datasets
                 const datasets = [];
@@ -1023,11 +1029,13 @@
         }
         
         // Add this new function to handle the additional filters
-        function applyAdditionalFilters(data, quarter, month, week) {
+        function applyAdditionalFilters(data, quarter, month, week, timeGranularity) {
             if (!data) return data;
         
             // Create a copy of the data to avoid modifying the original
             let filteredData = JSON.parse(JSON.stringify(data));
+            console.log(filteredData);
+            console.log(chartData);
             
             // Helper function to get month number from date string
             function getMonthFromDate(dateStr) {
@@ -1117,6 +1125,25 @@
                     filteredData.datasets.costs[key] = filteredData.datasets.costs[key].filter((_, index) => indicesToKeep.includes(index));
                 });
             }
+
+            // Apply time granularity filter
+            if (timeGranularity !== 'all') {
+                if (timeGranularity === 'hourly') {
+                    filteredData.labels = chartData.chart_data.datasets.hourly_data.labels;
+                    filteredData.datasets.consumption.day_consumption = chartData.chart_data.datasets.hourly_data.day_values;
+                    filteredData.datasets.consumption.night_consumption = chartData.chart_data.datasets.hourly_data.night_values;
+                    filteredData.datasets.costs.day_costs = chartData.chart_data.datasets.hourly_data.day_costs;
+                    filteredData.datasets.costs.night_costs = chartData.chart_data.datasets.hourly_data.night_costs;
+                } else if (timeGranularity === 'daily') {
+                    console.log(chartData);
+                    console.log(filteredData);
+                    filteredData.labels = chartData.chart_data.labels;
+                    filteredData.datasets.consumption.day_consumption = chartData.chart_data.datasets.consumption.day_consumption;
+                    filteredData.datasets.consumption.night_consumption = chartData.chart_data.datasets.consumption.night_consumption;
+                    filteredData.datasets.costs.day_costs = chartData.chart_data.datasets.costs.day_costs;
+                    filteredData.datasets.costs.night_costs = chartData.chart_data.datasets.costs.night_costs;
+                }
+            }
             
             return filteredData;
         }
@@ -1127,7 +1154,8 @@
                 'timeFilter': document.getElementById('timeFilter'),
                 'quarterSelect': document.getElementById('quarterSelect'),
                 'monthSelect': document.getElementById('monthSelect'),
-                'weekSelect': document.getElementById('weekSelect')
+                'weekSelect': document.getElementById('weekSelect'),
+                'timeGranularity': document.getElementById('timeGranularity')
             };
             
             // Reset all filters except the current one
@@ -1156,6 +1184,11 @@
         
         document.getElementById('weekSelect').addEventListener('change', function() {
             resetOtherFilters('weekSelect');
+            updateChartType();
+        });
+
+        document.getElementById('timeGranularity').addEventListener('change', function() {
+            resetOtherFilters('timeGranularity');
             updateChartType();
         });
 
