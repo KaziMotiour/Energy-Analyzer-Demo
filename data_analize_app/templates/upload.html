@@ -792,7 +792,6 @@
                 
                 // Create and update chart (always use 'line')
                 const config = createChartConfig('line', filteredData.labels, datasets, indices);
-                // console.log(energyChart)
                 if (energyChart) {
                     energyChart.destroy();
                 }
@@ -1034,8 +1033,6 @@
         
             // Create a copy of the data to avoid modifying the original
             let filteredData = JSON.parse(JSON.stringify(data));
-            console.log(filteredData);
-            console.log(chartData);
             
             // Helper function to get month number from date string
             function getMonthFromDate(dateStr) {
@@ -1135,8 +1132,6 @@
                     filteredData.datasets.costs.day_costs = chartData.chart_data.datasets.hourly_data.day_costs;
                     filteredData.datasets.costs.night_costs = chartData.chart_data.datasets.hourly_data.night_costs;
                 } else if (timeGranularity === 'daily') {
-                    console.log(chartData);
-                    console.log(filteredData);
                     filteredData.labels = chartData.chart_data.labels;
                     filteredData.datasets.consumption.day_consumption = chartData.chart_data.datasets.consumption.day_consumption;
                     filteredData.datasets.consumption.night_consumption = chartData.chart_data.datasets.consumption.night_consumption;
