@@ -400,11 +400,12 @@
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label for="updateChartType" class="form-label">Chart Type</label>
-                            <select class="form-select" id="updateChartType" name="updateChartType" onchange="">
-                                <option value="">Usage Chart</option>
-                                <option value="">Pricing Chart</option>
-                                <option value="">Ceiling Chart</option>
+                            <label for="ChartType" class="form-label">Chart Type</label>
+                            <select class="form-select" id="ChartType">
+                                <option value="all">All</option>
+                                <option value="usageChart">Usage Chart</option>
+                                <option value="pricingChart">Pricing Chart</option>
+                                <option value="ceiling">Ceiling Chart</option>
                                 <option value="">Solar Chart</option>
                                 <option value="">Asset Chart</option>
                             </select>
@@ -573,6 +574,7 @@
     <script>
         let energyChart = null;
         let chartData = null;  // Store the chart data globally
+        let filtersChartData = null
         
         function filterDataByTime(data, filterType) {
             if (filterType === 'all') return data;
@@ -787,7 +789,6 @@
                 
                 // Create and update chart (always use 'line')
                 const config = createChartConfig('line', filteredData.labels, datasets, indices);
-                // console.log(energyChart)
                 if (energyChart) {
                     energyChart.destroy();
                 }
@@ -931,13 +932,14 @@
                 const quarter = document.getElementById('quarterSelect').value;
                 const month = document.getElementById('monthSelect').value;
                 const week = document.getElementById('weekSelect').value;
+                const chartType = document.getElementById('ChartType').value;
                 
                 // Get filtered data with all filters
                 let filteredData = filterDataByTime(chartData.chart_data, filterType);
-                
+
                 // Apply additional filters
-                filteredData = applyAdditionalFilters(filteredData, quarter, month, week);
-                
+                filtersChartData = filteredData = applyAdditionalFilters(filteredData, quarter, month, week);
+
                 // Create datasets
                 const datasets = [];
                 
@@ -1009,7 +1011,7 @@
                 const indices = calculateIndices(filteredData.datasets.consumption);
                 
                 // Create and update chart
-                const config = createChartConfig('line', filteredData.labels, datasets, indices);
+                const config = createChartConfig('line', filteredData.labels, datasets, indices, chartType);
                 
                 if (energyChart) {
                     energyChart.destroy();
@@ -1137,6 +1139,21 @@
                 }
             });
         }
+
+        function resetAllFilters(currentFilter) {
+            const filters = {
+                'timeFilter': document.getElementById('timeFilter'),
+                'quarterSelect': document.getElementById('quarterSelect'),
+                'monthSelect': document.getElementById('monthSelect'),
+                'weekSelect': document.getElementById('weekSelect'),
+                'ChartType': document.getElementById('ChartType'),
+            };
+            
+            // Reset all filters except the current one
+            Object.entries(filters).forEach(([id, element]) => {
+                    element.value = 'all';
+            });
+        }
         
         // Modify the event listeners to include filter reset
         document.getElementById('timeFilter').addEventListener('change', function() {
@@ -1163,6 +1180,9 @@
         document.getElementById('kwh_ceiling').addEventListener('change', function() {
             updateChartType();
         });
+        document.getElementById('ChartType').addEventListener('change', function() {
+            updateChartType();
+        });
 
         function formatEUNumber(number, decimals = 2) {
             // Convert to EU format with thousands separator
@@ -1179,11 +1199,13 @@
         }
 
         function calculateAdjustedCeiling() {
-            const baseCeiling = parseFloat(document.getElementById('kwh_ceiling').value);
-            return baseCeiling * 96;
+            if (filtersChartData){
+                return Math.max(...filtersChartData.datasets.consumption.day_consumption)
+            }
+            return Math.max(...chartData.chart_data.datasets.consumption.day_consumption)
         }
         
-        function createChartConfig(chartType, labels, datasets, indices) {
+        function createChartConfig(chartType, labels, datasets, indices, chartClassification='all') {                        
             // Calculate the positions for all annotations
             const points = {
                 highPeak: {
@@ -1206,10 +1228,10 @@
                     y: datasets[1].data[indices.lowestOffPeakIndex],
                     color: 'rgba(54, 162, 235, 0.8)'
                 }
-            };
+            };            
         
             // Define all annotations including the ceiling
-            const annotations = {
+            let annotations = {
                 highestPeakAnnotation: {
                     type: 'point',
                     xValue: points.highPeak.x,
@@ -1283,8 +1305,25 @@
                         padding: 6
                     }
                 }
-            };
-        
+            };           
+
+            if (chartClassification==='usageChart') {
+                 datasets = datasets.filter(
+                     (item) => item.label==='Peak Hours Consumption (kW)'
+                     || item.label === 'Off-Peak Hours Consumption (kW)'
+                 )
+            } else if (chartClassification==='pricingChart') {
+                datasets = datasets.filter(
+                    (item) => item.label==='Peak Hours Cost (€)'
+                    || item.label === 'Off-Peak Hours Cost (€)'
+                )
+                annotations = {}
+            } else if(chartClassification==='ceiling') {
+                // datasets = datasets.filter((item) => item.label==='Total Consumption (kW)')
+                datasets = []
+                annotations = { ceiling: annotations.ceiling};
+            }
+            
             return {
                 type: chartType === 'mixed' ? 'bar' : chartType,
                 data: {
@@ -1644,7 +1683,7 @@
 
         async function handleFormSubmit(e) {
             e.preventDefault();
-            
+            resetAllFilters()
             // Hide previous error messages and results
             document.getElementById('errorAlert').style.display = 'none';
             document.getElementById('resultsSection').style.display = 'none';
