@@ -583,7 +583,7 @@
         
         function filterDataByTime(data, filterType) {
             if (filterType === 'all') return data;
-        
+            
             const labels = data.labels;
             const endDate = new Date(labels[labels.length - 1]);
             const filteredIndices = [];
@@ -612,7 +612,7 @@
                     filteredIndices.push(index);
                 }
             });
-        
+            
             // Filter the data
             return {
                 labels: filteredIndices.map(i => labels[i]),
@@ -1125,7 +1125,7 @@
                     filteredData.datasets.costs[key] = filteredData.datasets.costs[key].filter((_, index) => indicesToKeep.includes(index));
                 });
             }
-
+            
             // Apply time granularity filter
             if (timeGranularity !== 'all') {
                 if (timeGranularity === 'hourly') {
@@ -1340,6 +1340,7 @@
                  datasets = datasets.filter(
                      (item) => item.label==='Peak Hours Consumption (kW)'
                      || item.label === 'Off-Peak Hours Consumption (kW)'
+                     ||  item.label === 'Total Consumption (kW)'
                  )
             } else if (chartClassification==='pricingChart') {
                 datasets = datasets.filter(
