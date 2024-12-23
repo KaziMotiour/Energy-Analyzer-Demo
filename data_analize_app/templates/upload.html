@@ -1663,11 +1663,15 @@
             container.innerHTML = html;
         }
 
+
+        let newTotalPeakCost = 0
+        let newTotalOffPeakCost = 0
+        let peakProfit = 0
+        let offPeakProfit = 0
         function setProfitValueToProfitCalculatorSection(newPrice, usageTime){
-            let newTotalPeakCost = 0
-            let newTotalOffPeakCost = 0
-            let peakProfit = 0
-            let offPeakProfit = 0
+            let totalCost = 0
+            let totalProfit = 0
+
             data = chartData.chart_data.summary
             
             // new cost calculation
@@ -1683,12 +1687,13 @@
                     newTotalOffPeakCost = data.total_night_consumption * parseFloat(newPrice)
                 else
                     newTotalOffPeakCost = 0
-            }
-            const totalCost = newTotalPeakCost + newTotalOffPeakCost
+            }            
+            totalCost = newTotalPeakCost + newTotalOffPeakCost
 
             // profit calculation
             peakProfit = newTotalPeakCost > 0 ? data.total_day_cost - newTotalPeakCost : 0
             offPeakProfit = newTotalOffPeakCost > 0 ? data.total_night_cost - newTotalOffPeakCost : 0
+            totalProfit = peakProfit + offPeakProfit
 
             if (usageTime==='peak'){
                 document.getElementById('peak-new-cost').textContent = '€ ' + String(newTotalPeakCost.toFixed(2)) + ',-'
@@ -1699,7 +1704,9 @@
                 document.getElementById('off-peak-new-cost').textContent = '€ ' + String(newTotalOffPeakCost.toFixed(2)) + ',-'
                 document.getElementById('off-peak-profit').textContent = '€ ' + String(offPeakProfit.toFixed(2)) + ',-'
             }
-
+            
+            document.getElementById('total-new-cost').textContent = totalCost.toFixed(2)
+            document.getElementById('total-yearly-profit').textContent = totalProfit.toFixed(2)
         }
 
         function setDataToProfitCalculatorSection(data) {            
