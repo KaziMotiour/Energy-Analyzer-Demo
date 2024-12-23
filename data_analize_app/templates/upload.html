@@ -388,7 +388,87 @@
                     .statistics-card::-webkit-scrollbar-thumb:hover {
                         background: #555;
                     }
+                    .calculator-button{
+                        float: right;
+                        margin-bottom: 5px;
+                        margin-top: -8px;
+                    }
+                    .new-price-form{
+                        max-width: 150px;
+                    }
                 </style>
+                <!-- profit calculation -->
+                <div class="container border rounded mt-5">
+                    <h5 class="text-uppercase text-center mb-3">Profit Calculator</h5>
+                    <div class="row">
+                      <!-- Left Section -->
+                      <div class="col-md-6 border rounded">
+                        <table class="table table-borderless align-middle">
+                          <thead>
+                            <tr>
+                                <th class=""></th>
+                                <th class="text-center">Unit/Price</th>
+                                <th class="text-center text-danger">USAGE in KWH</th>
+                                <th class="text-center">PRICE</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td class="border-end">peak</td>
+                              <td class="border-end text-center" id="peak-unit-price"></td>
+                              <td class="border-end text-center" id="peak-total-usage"></td>
+                              <td class="text-end text-center" id="peak-total-price"></td>
+                            </tr>
+                            <tr>
+                              <td class="border-end">Off Peak</td>
+                              <td class="border-end text-center" id="off-peak-unit-price"></td>
+                              <td class="border-end text-center" id="off-peak-total-usage"></td>
+                              <td class="text-end text-center" id="off-peak-total-price"></td>
+                            </tr>
+                            <tr>
+                              <td class="border-end fw-bold">Total</td>
+                              <td></td>
+                              <td class="border-end text-center fw-bold" id="total-usage"></td>
+                              <td class="text-center fw-bold" id="total-cost"></td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                  
+                      <!-- Right Section -->
+                      <div class="col-md-6 bg-light border rounded">
+                          <table class="table table-borderless align-middle bg-light rounded">
+                            <thead>
+                              <tr>
+                                <th class="text-danger">NEW Unit/Price</th>
+                                <th class="text-center">New Cost</th>
+                                <th class="text-center">Yearly Profit</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td>
+                                    <input type="number" class="new-price-form from form-control" id="peak-price"  min="0" step="1"/>
+                                </td>
+                                <td class="text-center" id="peak-new-cost"></td>
+                                <td class="text-center text-success" id="peak-profit"></td>
+                              </tr>
+                              <tr>
+                                <td><input type="number" class="new-price-form from form-control" id="off-peak-price"  min="0" step="1"/></td>
+                                <td class="text-center" id="off-peak-new-cost"></td>
+                                <td class="text-center text-success" id="off-peak-profit"></td>
+                              </tr>
+                              <tr>
+                                <td class="fw-bold">TOTAL</td>
+                                <td class="text-center fw-bold" id="total-new-cost"></td>
+                                <td class="text-center text-success fw-bold" id="total-yearly-profit"></td>
+                              </tr>
+                            </tbody>
+                          </table>
+                          <!-- <button class="btn btn-primary calculator-button">Calculate new price</button> -->
+                      </div>
+                    </div>
+                  </div>
                 <!-- Chart Container -->
                 <div class="chart-container">
                     <div class="row mb-3">
@@ -1177,6 +1257,9 @@
             Object.entries(filters).forEach(([id, element]) => {
                     element.value = 'all';
             });
+
+            document.getElementById('peak-price').value = ''
+            document.getElementById('off-peak-price').value = ''
         }
         
         // Modify the event listeners to include filter reset
@@ -1206,11 +1289,14 @@
         });
 
         // Add event listener for ceiling value changes
-        document.getElementById('kwh_ceiling').addEventListener('change', function() {
+        document.getElementById('kwh_ceiling').addEventListener('change', function(event) {
             updateChartType();
         });
-        document.getElementById('ChartType').addEventListener('change', function() {
-            updateChartType();
+        document.getElementById('peak-price').addEventListener('input', function(event) {            
+            setProfitValueToProfitCalculatorSection(event.target.value, 'peak')
+        });
+        document.getElementById('off-peak-price').addEventListener('input', function() {            
+            setProfitValueToProfitCalculatorSection(event.target.value, 'offPeak')   
         });
 
         function formatEUNumber(number, decimals = 2) {
@@ -1576,9 +1662,64 @@
             
             container.innerHTML = html;
         }
+
+        function setProfitValueToProfitCalculatorSection(newPrice, usageTime){
+            let newTotalPeakCost = 0
+            let newTotalOffPeakCost = 0
+            let peakProfit = 0
+            let offPeakProfit = 0
+            data = chartData.chart_data.summary
+            
+            // new cost calculation
+            if (usageTime==='peak'){
+                if (newPrice)
+                    newTotalPeakCost =  data.total_day_consumption * parseFloat(newPrice)
+                else
+                    newTotalPeakCost = 0
+            }
+             
+            if (usageTime==='offPeak'){
+                if (newPrice)
+                    newTotalOffPeakCost = data.total_night_consumption * parseFloat(newPrice)
+                else
+                    newTotalOffPeakCost = 0
+            }
+            const totalCost = newTotalPeakCost + newTotalOffPeakCost
+
+            // profit calculation
+            peakProfit = newTotalPeakCost > 0 ? data.total_day_cost - newTotalPeakCost : 0
+            offPeakProfit = newTotalOffPeakCost > 0 ? data.total_night_cost - newTotalOffPeakCost : 0
+
+            if (usageTime==='peak'){
+                document.getElementById('peak-new-cost').textContent = '€ ' + String(newTotalPeakCost.toFixed(2)) + ',-'
+                document.getElementById('peak-profit').textContent = '€ ' + String(peakProfit.toFixed(2)) + ',-'
+            }
+
+            if (usageTime==='offPeak'){
+                document.getElementById('off-peak-new-cost').textContent = '€ ' + String(newTotalOffPeakCost.toFixed(2)) + ',-'
+                document.getElementById('off-peak-profit').textContent = '€ ' + String(offPeakProfit.toFixed(2)) + ',-'
+            }
+
+        }
+
+        function setDataToProfitCalculatorSection(data) {            
+            document.getElementById('peak-unit-price').textContent = '€ ' + String(data.peak_price)
+            document.getElementById('off-peak-unit-price').textContent = '€ ' + String(data.off_peak_price)
+            document.getElementById('peak-total-usage').textContent = data.total_day_consumption
+            document.getElementById('off-peak-total-usage').textContent = data.total_night_consumption
+            document.getElementById('peak-total-price').textContent = '€ ' + String(data.total_day_cost) + ',-'
+            document.getElementById('off-peak-total-price').textContent = '€ ' + String(data.total_night_cost) + ',-'
+            document.getElementById('total-usage').textContent = data.total_consumption
+            document.getElementById('total-cost').textContent = '€ ' + String(data.total_cost) + ',-'
+        }
+        
+
         function renderResults(data) {
             // Update data summary
             updateDataSummary(data);
+
+            // set data to profit calculator section
+            setDataToProfitCalculatorSection(data.chart_data.summary)
 
             // Update consumption averages if available
             if (data.consumption_averages) {

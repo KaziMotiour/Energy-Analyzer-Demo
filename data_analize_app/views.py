@@ -194,7 +194,10 @@ def analyze_energy_data(df, pricing_periods, kwh_ceiling):
             'total_day_cost': float(total_day_cost),
             'total_night_cost': float(total_night_cost),
             'total_consumption': float(total_day_consumption + total_night_consumption),
-            'total_cost': float(total_day_cost + total_night_cost)
+            'total_cost': float(total_day_cost + total_night_cost),
+            'peak_price': float(price_high),
+            'off_peak_price': float(price_low)
+
         },
         'statistics': {
             'total_records': int(initial_rows),
