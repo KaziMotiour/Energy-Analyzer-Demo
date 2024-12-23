@@ -1282,7 +1282,7 @@
             resetOtherFilters('weekSelect');
             updateChartType();
         });
-
+        
         document.getElementById('timeGranularity').addEventListener('change', function() {
             resetOtherFilters('timeGranularity');
             updateChartType();
@@ -1292,6 +1292,11 @@
         document.getElementById('kwh_ceiling').addEventListener('change', function(event) {
             updateChartType();
         });
+
+        document.getElementById('ChartType').addEventListener('change', function() {
+            updateChartType();
+        });
+        
         document.getElementById('peak-price').addEventListener('input', function(event) {            
             setProfitValueToProfitCalculatorSection(event.target.value, 'peak')
         });
