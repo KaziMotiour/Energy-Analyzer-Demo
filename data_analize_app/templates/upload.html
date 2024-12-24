@@ -659,7 +659,8 @@
     <script>
         let energyChart = null;
         let chartData = null;  // Store the chart data globally
-        let filtersChartData = null
+        let filtersChartData = null;
+        let updatedChartData = null;
         
         function filterDataByTime(data, filterType) {
             if (filterType === 'all') return data;
@@ -1020,11 +1021,13 @@
                 const timeGranularity = document.getElementById('timeGranularity').value;
                 const chartType = document.getElementById('ChartType').value;
                 
-                // Get filtered data with all filters
-                let filteredData = filterDataByTime(chartData.chart_data, filterType);
+                filteredData = filterDataByTime(chartData.chart_data, filterType);
 
-                // Apply additional filters
-                filtersChartData = filteredData = applyAdditionalFilters(filteredData, quarter, month, week, timeGranularity);
+                // Apply additional filters to the current filtered data
+                filteredData = applyAdditionalFilters(filteredData, quarter, month, week, timeGranularity);
+                
+                // Store the filtered data for next filter operation
+                filtersChartData = JSON.parse(JSON.stringify(filteredData));
 
                 // Create datasets
                 const datasets = [];
@@ -1209,17 +1212,69 @@
             // Apply time granularity filter
             if (timeGranularity !== 'all') {
                 if (timeGranularity === 'hourly') {
-                    filteredData.labels = chartData.chart_data.datasets.hourly_data.labels;
-                    filteredData.datasets.consumption.day_consumption = chartData.chart_data.datasets.hourly_data.day_values;
-                    filteredData.datasets.consumption.night_consumption = chartData.chart_data.datasets.hourly_data.night_values;
-                    filteredData.datasets.costs.day_costs = chartData.chart_data.datasets.hourly_data.day_costs;
-                    filteredData.datasets.costs.night_costs = chartData.chart_data.datasets.hourly_data.night_costs;
+                    // Create hourly data structure
+                    const hourlyData = {
+                        labels: [],
+                        datasets: {
+                            consumption: {
+                                day_consumption: [],
+                                night_consumption: []
+                            },
+                            costs: {
+                                day_costs: [],
+                                night_costs: []
+                            }
+                        }
+                    };
+
+                    // Get peak hours start time
+                    const peakStart = document.getElementById('peak_start_time').value;
+                    const peakHour = parseInt(peakStart.split(':')[0]);
+                    
+                    // For each day in the filtered data
+                    filteredData.labels.forEach((date, index) => {
+                        // Generate 24 hourly data points for this day
+                        for (let hour = 0; hour < 24; hour++) {
+                            const hourDate = new Date(date);
+                            hourDate.setHours(hour);
+                            
+                            // Format the date as "YYYY-MM-DD HH:00"
+                            const hourLabel = `${date} ${hour.toString().padStart(2, '0')}:00`;
+                            hourlyData.labels.push(hourLabel);
+
+                            // Calculate consumption based on whether it's peak or off-peak
+                            const isPeakHour = hour >= peakHour || hour < 6; // Assuming peak hours are from peakStart to 6am
+                            const dailyConsumption = isPeakHour ? 
+                                filteredData.datasets.consumption.day_consumption[index] : 
+                                filteredData.datasets.consumption.night_consumption[index];
+                            
+                            // Distribute daily consumption across hours (with some variation)
+                            const hourlyConsumption = (dailyConsumption / 24) * (0.8 + Math.random() * 0.4);
+
+                            // Set consumption values
+                            if (isPeakHour) {
+                                hourlyData.datasets.consumption.day_consumption.push(hourlyConsumption);
+                                hourlyData.datasets.consumption.night_consumption.push(0);
+                                
+                                // Calculate costs
+                                const peakPrice = parseFloat(document.getElementById('price_high').value);
+                                hourlyData.datasets.costs.day_costs.push(hourlyConsumption * peakPrice);
+                                hourlyData.datasets.costs.night_costs.push(0);
+                            } else {
+                                hourlyData.datasets.consumption.day_consumption.push(0);
+                                hourlyData.datasets.consumption.night_consumption.push(hourlyConsumption);
+                                
+                                // Calculate costs
+                                const offPeakPrice = parseFloat(document.getElementById('price_low').value);
+                                hourlyData.datasets.costs.day_costs.push(0);
+                                hourlyData.datasets.costs.night_costs.push(hourlyConsumption * offPeakPrice);
+                            }
+                        }
+                    });
+
+                    return hourlyData;
                 } else if (timeGranularity === 'daily') {
-                    filteredData.labels = chartData.chart_data.labels;
-                    filteredData.datasets.consumption.day_consumption = chartData.chart_data.datasets.consumption.day_consumption;
-                    filteredData.datasets.consumption.night_consumption = chartData.chart_data.datasets.consumption.night_consumption;
-                    filteredData.datasets.costs.day_costs = chartData.chart_data.datasets.costs.day_costs;
-                    filteredData.datasets.costs.night_costs = chartData.chart_data.datasets.costs.night_costs;
+                    return filteredData;
                 }
             }
             
@@ -1229,11 +1284,11 @@
         // reset and update other filters
         function resetOtherFilters(currentFilter) {
             const filters = {
-                'timeFilter': document.getElementById('timeFilter'),
-                'quarterSelect': document.getElementById('quarterSelect'),
-                'monthSelect': document.getElementById('monthSelect'),
-                'weekSelect': document.getElementById('weekSelect'),
-                'timeGranularity': document.getElementById('timeGranularity')
+                //'timeFilter': document.getElementById('timeFilter'),
+                //'quarterSelect': document.getElementById('quarterSelect'),
+                //'monthSelect': document.getElementById('monthSelect'),
+                //'weekSelect': document.getElementById('weekSelect'),
+                //'timeGranularity': document.getElementById('timeGranularity')
             };
             
             // Reset all filters except the current one
