@@ -941,13 +941,7 @@
                 const timeGranularity = document.getElementById('timeGranularity').value;
                 const chartType = document.getElementById('ChartType').value;
                 
-                // Start with the current filtered data if it exists, otherwise use original data
-                let filteredData;
-                if (filtersChartData && Object.keys(filtersChartData).length > 0) {
-                    filteredData = JSON.parse(JSON.stringify(filtersChartData));
-                } else {
-                    filteredData = filterDataByTime(chartData.chart_data, filterType);
-                }
+                filteredData = filterDataByTime(chartData.chart_data, filterType);
 
                 // Apply additional filters to the current filtered data
                 filteredData = applyAdditionalFilters(filteredData, quarter, month, week, timeGranularity);
